@@ -13,23 +13,24 @@
 <body>
 
 <div class="box">
+  <div class="box2">
+      <h2>Upload Image</h2>
 
-  <h2 style="color: white;">Upload Image</h2>
+      <input type="file" id="imageInput" accept="image/*">
 
-  <input type="file" id="imageInput" accept="image/*">
+      <br>
 
-  <br>
+      <img id="preview">
 
-  <img id="preview">
+      <br>
 
-  <br>
+      <button id="predictBtn">Predict</button>
 
-  <button id="predictBtn">Predict</button>
-
-  <div id="result"></div>
-  <div id="recommendation"></div>
-  <div id="first_aid"></div>
-  <div id="vet"></div>
+      <div id="result"></div>
+      <div id="recommendation"></div>
+      <div id="first_aid"></div>
+      <div id="vet"></div>
+  </div>
 </div>
 
 <script src="{{url_for('static', filename='script.js')}}"></script>
