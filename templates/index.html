@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{url_for('static', filename='style.css')}}">
   <title>Image Classifier</title>
 
   <style>
@@ -14,7 +14,7 @@
 
 <div class="box">
 
-  <h2>Upload Image</h2>
+  <h2 style="color: white;">Upload Image</h2>
 
   <input type="file" id="imageInput" accept="image/*">
 
@@ -27,10 +27,12 @@
   <button id="predictBtn">Predict</button>
 
   <div id="result"></div>
-
+  <div id="recommendation"></div>
+  <div id="first_aid"></div>
+  <div id="vet"></div>
 </div>
 
-<script src="{{ url_for('static', filename='script.js') }}"></script>
+<script src="{{url_for('static', filename='script.js')}}"></script>
 
 </body>
 </html>
