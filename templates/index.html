@@ -14,16 +14,19 @@
 
 <div class="box">
   <div class="box2">
+      <a href="/profiles" style="float: right;">Manage Pet Profiles →</a>
       <h2>Upload Image</h2>
 
+      <label for="petSelect">Select Pet: </label>
+      <select id="petSelect">
+          <option value="">-- Guest (Don't Save to History) --</option>
+      </select>
+      <br><br>
+
       <input type="file" id="imageInput" accept="image/*">
-
       <br>
-
       <img id="preview">
-
       <br>
-
       <button id="predictBtn">Predict</button>
 
       <div id="result"></div>

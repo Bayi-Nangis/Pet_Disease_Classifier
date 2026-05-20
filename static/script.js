@@ -6,6 +6,20 @@ const recommendation = document.getElementById("recommendation");
 const firstAid = document.getElementById("first_aid");
 const vet = document.getElementById("vet");
 
+const petSelect = document.getElementById("petSelect");
+
+async function populateDropdown() {
+  const response = await fetch("/get-pets");
+  const pets = await response.json();
+  pets.forEach(pet => {
+    const option = document.createElement("option");
+    option.value = pet.id;
+    option.textContent = pet.name;
+    petSelect.appendChild(option);
+  });
+}
+populateDropdown();
+
 imageInput.addEventListener("change", function () {
   const file = this.files[0];
 
@@ -29,6 +43,7 @@ predictBtn.addEventListener("click", async function () {
 
   const formData = new FormData();
   formData.append("image", imageInput.files[0]);
+  formData.append("pet_id", petSelect.value);
 
   result.innerText = "Predicting...";
 
