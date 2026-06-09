@@ -186,8 +186,8 @@ def predict():
             if float(np.max(prediction[0])) < 0.8:
                 info["recommended_action"] = "Prediction confidence is low. Consider retaking the photo or consulting a vet directly."
             if pet_id:
+                start_db_time = time.time()
                 # Simulate writes to test db
-                # start_db_time = time.time()
                 # error_count = 0
                 # for i in range(50):
                 #     try:
@@ -214,6 +214,7 @@ def predict():
                             "vet": info["vet"],
                             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         })
+                        print("Database insertion success!")
                         break
                     except Exception as e:
                         print(f"CRITICAL DATABASE WRITE ERROR: {e}, try: {i}")
