@@ -1,5 +1,7 @@
 flask
 tensorflow
 numpy
+firebase-admin
+python-magic-bin
 pillow
 gunicorn
