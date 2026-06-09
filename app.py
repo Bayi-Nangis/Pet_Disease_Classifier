@@ -1,8 +1,16 @@
-from flask import Flask, render_template, request, jsonify
+import os
+
+from flask import Flask, render_template, request, jsonify, current_app
 from tensorflow.keras.models import load_model
 from PIL import Image
 import numpy as np
 from datetime import datetime
+
+import magic
+from werkzeug.utils import secure_filename
+from werkzeug.exceptions import RequestEntityTooLarge
+
+import time
 
 import firebase_admin
 from firebase_admin import credentials, firestore
@@ -12,6 +20,9 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 24 * 1024 * 1024
+app.config['ALLOWED_EXTENSIONS'] = {'.jpg', '.jpeg', '.png'}
+app.config['ALLOWED_MIME_TYPES'] = {'image/jpeg', 'image/png'}
 model = load_model("pet_disease_model.keras")
 
 class_names = ["Dental Disease", "Ear Mites", "Eye Infection", "Fungal Infection", "Hot Spots",
@@ -136,40 +147,91 @@ def home():
 def profiles_page():
     return render_template("profiles.html")
 
+def handle_file_size_error(e):
+    return jsonify({"error": "File is too large. Maximum size is 24MB."}), 413
+
+@app.errorhandler(RequestEntityTooLarge)
+def allowed_file(filestream, filename):
+    if os.path.splitext(filename)[-1] in current_app.config['ALLOWED_EXTENSIONS']:
+        file_head = filestream.read(2048)
+        filestream.seek(0)
+        mime = magic.from_buffer(file_head, mime=True)
+        if mime in current_app.config['ALLOWED_MIME_TYPES']:
+            return True
+    return False
+
 @app.route("/predict", methods=["POST"])
 def predict():
-    try:
-        file = request.files["image"]
-        pet_id = request.form.get("pet_id")
+    for firstI in range(4):
+        try:
+            start_time = time.time()
+            file = request.files["image"]
+            if file and allowed_file(file.stream,file.filename):
+                file.filename = secure_filename(file.filename)
+            else:
+                return jsonify({"error": "Invalid file type. Only JPG and PNG are allowed."}), 400
 
-        image = Image.open(file).convert("RGB")
-        image = image.resize((224, 224))
-        img_array = np.array(image) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
+                
+            pet_id = request.form.get("pet_id")
 
-        prediction = model.predict(img_array)
-        predicted_class = np.argmax(prediction[0])
-        result = class_names[predicted_class]
-        info = disease_info[result]
-        if pet_id:
-            db.collection("predictions").add({
-                "petId": pet_id,
-                "disease": result,
+            image = Image.open(file).convert("RGB")
+            image = image.resize((224, 224))
+            img_array = np.array(image) / 255.0
+            img_array = np.expand_dims(img_array, axis=0)
+
+            prediction = model.predict(img_array)
+            predicted_class = np.argmax(prediction[0])
+            result = class_names[predicted_class]
+            info = disease_info[result]
+            if float(np.max(prediction[0])) < 0.8:
+                info["recommended_action"] = "Prediction confidence is low. Consider retaking the photo or consulting a vet directly."
+            if pet_id:
+                # Simulate writes to test db
+                # start_db_time = time.time()
+                # error_count = 0
+                # for i in range(50):
+                #     try:
+                #         db.collection("predictions").add({
+                #             "petId": pet_id,
+                #             "disease": result,
+                #             "first_aid": info["first_aid"],
+                #             "recommended_action": info["recommended_action"],
+                #             "vet": info["vet"],
+                #             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                #         })
+                #     except Exception as e:
+                #         error_count += 1
+                #         print(f"Database write error on attempt {i+1}: {e}")
+                #     time.sleep(0.1)
+                # print(f"Database error rate: {error_count/50*100}%")
+                for i in range(4):
+                    try:
+                        db.collection("predictions").add({
+                            "petId": pet_id,
+                            "disease": result,
+                            "first_aid": info["first_aid"],
+                            "recommended_action": info["recommended_action"],
+                            "vet": info["vet"],
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        })
+                        break
+                    except Exception as e:
+                        print(f"CRITICAL DATABASE WRITE ERROR: {e}, try: {i}")
+                        time.sleep(0.1)
+            latency = (time.time() - start_time) * 1000
+            db_latency = (time.time() - start_db_time) * 1000 if pet_id else 0
+            print(f"total latency: {latency}ms")
+            print(f"database latency: {db_latency}ms")
+            return jsonify({
+                "prediction": result,
                 "first_aid": info["first_aid"],
                 "recommended_action": info["recommended_action"],
                 "vet": info["vet"],
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                "confidence": float(np.max(prediction[0]))
             })
-
-        return jsonify({
-            "prediction": result,
-            "first_aid": info["first_aid"],
-            "recommended_action": info["recommended_action"],
-            "vet": info["vet"]
-        })
-    except Exception as e:
-        print(f"CRITICAL BACKEND ERROR: {e}")
-        return jsonify({"error": str(e)}), 500
+        except Exception as e:
+            print(f"CRITICAL BACKEND ERROR: {e}, try: {firstI}")
+    return jsonify({"error": str(e)}), 500  
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

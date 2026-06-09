@@ -5,6 +5,8 @@ const result = document.getElementById("result");
 const recommendation = document.getElementById("recommendation");
 const firstAid = document.getElementById("first_aid");
 const vet = document.getElementById("vet");
+const error = document.getElementById("error");
+const confidence = document.getElementById("confidence");
 
 const petSelect = document.getElementById("petSelect");
 
@@ -53,8 +55,19 @@ predictBtn.addEventListener("click", async function () {
   });
   const data = await response.json();
 
-  result.innerText = "Prediction: " + data.prediction;
-  recommendation.innerText = "Recommendation: " + data.recommended_action;
-  firstAid.innerText = "First Aid: " + data.first_aid;
-  vet.innerText = "When to see the vet: " + data.vet;
+  if (data.error) {
+    error.innerText = data.error;
+    result.innerText = "";
+    recommendation.innerText = "";
+    firstAid.innerText = "";
+    vet.innerText = "";
+    confidence.innerText = "";
+  } else {
+    error.innerText = "";
+    result.innerText = "Prediction: " + data.prediction;
+    recommendation.innerText = "Recommendation: " + data.recommended_action;
+    firstAid.innerText = "First Aid: " + data.first_aid;
+    vet.innerText = "When to see the vet: " + data.vet;
+    confidence.innerText = "Confidence: " + (data.confidence * 100).toFixed(2) + "%";
+  }
 });
